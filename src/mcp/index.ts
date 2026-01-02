@@ -4,8 +4,10 @@ import { Logger } from "../utils/logger.js";
 import {
   downloadFigmaImagesTool,
   getFigmaDataTool,
+  getFigmaImagesUrlTool,
   type DownloadImagesParams,
   type GetFigmaDataParams,
+  type GetFigmaImagesUrlParams,
 } from "./tools/index.js";
 
 const serverInfo = {
@@ -56,6 +58,14 @@ function registerTools(
       downloadFigmaImagesTool.description,
       downloadFigmaImagesTool.parameters,
       (params: DownloadImagesParams) => downloadFigmaImagesTool.handler(params, figmaService),
+    );
+  } else {
+    // Register get_figma_images_url tool if skipImageDownloads is set
+    server.tool(
+      getFigmaImagesUrlTool.name,
+      getFigmaImagesUrlTool.description,
+      getFigmaImagesUrlTool.parameters,
+      (params: GetFigmaImagesUrlParams) => getFigmaImagesUrlTool.handler(params, figmaService),
     );
   }
 }
