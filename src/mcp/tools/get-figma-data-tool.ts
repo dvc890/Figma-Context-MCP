@@ -8,8 +8,11 @@ import {
 } from "~/extractors/index.js";
 import yaml from "js-yaml";
 import { Logger, writeLogs } from "~/utils/logger.js";
+import { RateLimitError } from "~/utils/fetch-with-retry.js";
 
 const parameters = {
+  // ... (lines 12-45 remain same, I will use multi_replace for cleaner edits if needed, but let's try one block)
+
   fileKey: z
     .string()
     .regex(/^[a-zA-Z0-9]+$/, "File key must be alphanumeric")
@@ -50,8 +53,7 @@ async function getFigmaData(
     const nodeId = rawNodeId?.replace(/-/g, ":");
 
     Logger.log(
-      `Fetching ${depth ? `${depth} layers deep` : "all layers"} of ${
-        nodeId ? `node ${nodeId} from file` : `full file`
+      `Fetching ${depth ? `${depth} layers deep` : "all layers"} of ${nodeId ? `node ${nodeId} from file` : `full file`
       } ${fileKey}`,
     );
 
@@ -72,8 +74,7 @@ async function getFigmaData(
     writeLogs("figma-simplified.json", simplifiedDesign);
 
     Logger.log(
-      `Successfully extracted data: ${simplifiedDesign.nodes.length} nodes, ${
-        Object.keys(simplifiedDesign.globalVars.styles).length
+      `Successfully extracted data: ${simplifiedDesign.nodes.length} nodes, ${Object.keys(simplifiedDesign.globalVars.styles).length
       } styles`,
     );
 
@@ -93,6 +94,14 @@ async function getFigmaData(
       content: [{ type: "text" as const, text: formattedResult }],
     };
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      const rateLimitMsg = error.toMessage();
+      Logger.error(`Rate limit hit for ${params.fileKey}:`, rateLimitMsg);
+      return {
+        isError: true,
+        content: [{ type: "text" as const, text: rateLimitMsg }],
+      };
+    }
     const message = error instanceof Error ? error.message : JSON.stringify(error);
     Logger.error(`Error fetching file ${params.fileKey}:`, message);
     return {
@@ -106,7 +115,7 @@ async function getFigmaData(
 export const getFigmaDataTool = {
   name: "get_figma_data",
   description:
-    "Get comprehensive Figma file data including layout, content, visuals, and component information",
+    "Get comprehensive Figma file data including layout, content, visuals, and component information. WARNING: This tool is subject to Figma API rate limits. Please avoid frequent polling and attempt to batch your requests if possible. If you receive a 429 error, you MUST wait for the specified 'Retry-After' duration before calling this tool again.",
   parameters,
   handler: getFigmaData,
 } as const;

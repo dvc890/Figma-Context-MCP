@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { FigmaService } from "../../services/figma.js";
 import { Logger } from "../../utils/logger.js";
+import { RateLimitError } from "../../utils/fetch-with-retry.js";
 
 const parameters = {
     fileKey: z
@@ -121,6 +122,14 @@ async function getFigmaImagesUrl(params: GetFigmaImagesUrlParams, figmaService: 
             ],
         };
     } catch (error) {
+        if (error instanceof RateLimitError) {
+            const rateLimitMsg = error.toMessage();
+            Logger.error(`Rate limit hit for ${params.fileKey}:`, rateLimitMsg);
+            return {
+                isError: true,
+                content: [{ type: "text" as const, text: rateLimitMsg }],
+            };
+        }
         Logger.error(`Error getting image URLs from ${params.fileKey}:`, error);
         return {
             isError: true,
@@ -137,7 +146,7 @@ async function getFigmaImagesUrl(params: GetFigmaImagesUrlParams, figmaService: 
 export const getFigmaImagesUrlTool = {
     name: "get_figma_images_url",
     description:
-        "Get temporary download URLs for SVG and PNG images in a Figma file",
+        "Get temporary download URLs for SVG and PNG images in a Figma file. WARNING: This tool is subject to Figma API rate limits. Please avoid frequent polling and attempt to batch your requests if possible. If you receive a 429 error, you MUST wait for the specified 'Retry-After' duration before calling this tool again.",
     parameters,
     handler: getFigmaImagesUrl,
 } as const;

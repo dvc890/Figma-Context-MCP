@@ -13,6 +13,33 @@ type RequestOptions = RequestInit & {
   headers?: Record<string, string>;
 };
 
+export class RateLimitError extends Error {
+  public retryAfter: number | null = null;
+  public planTier: string | null = null;
+  public rateLimitType: string | null = null;
+  public upgradeLink: string | null = null;
+
+  constructor(message: string, headers: Headers) {
+    super(message);
+    this.name = "RateLimitError";
+    const retryAfter = headers.get("Retry-After");
+    this.retryAfter = retryAfter ? parseInt(retryAfter, 10) : null;
+    this.planTier = headers.get("X-Figma-Plan-Tier");
+    this.rateLimitType = headers.get("X-Figma-Rate-Limit-Type");
+    this.upgradeLink = headers.get("X-Figma-Upgrade-Link");
+  }
+
+  public toMessage(): string {
+    let msg = this.message;
+    if (this.retryAfter) msg += `\nRetry after: ${this.retryAfter} seconds.`;
+    if (this.planTier) msg += `\nFigma Plan Tier: ${this.planTier}`;
+    if (this.rateLimitType) msg += `\nRate Limit Type: ${this.rateLimitType}`;
+    if (this.upgradeLink) msg += `\nUpgrade Link: ${this.upgradeLink}`;
+    msg += "\n\nOptimization Suggestion: Please follow Figma API best practices. Batch your requests and avoid frequent polling. If you are on a free plan, consider upgrading or increasing the interval between requests.";
+    return msg;
+  }
+}
+
 export async function fetchWithRetry<T extends { status?: number }>(
   url: string,
   options: RequestOptions = {},
@@ -20,14 +47,25 @@ export async function fetchWithRetry<T extends { status?: number }>(
   try {
     const response = await fetch(url, options);
 
+    if (response.status === 429) {
+      throw new RateLimitError(
+        `Figma API Rate Limit exceeded (429): ${response.statusText}`,
+        response.headers,
+      );
+    }
+
     if (!response.ok) {
       throw new Error(`Fetch failed with status ${response.status}: ${response.statusText}`);
     }
     return (await response.json()) as T;
   } catch (fetchError: any) {
+    if (fetchError instanceof RateLimitError) {
+      throw fetchError;
+    }
     Logger.log(
       `[fetchWithRetry] Initial fetch failed for ${url}: ${fetchError.message}. Likely a corporate proxy or SSL issue. Attempting curl fallback.`,
     );
+
 
     const curlHeaders = formatHeadersForCurl(options.headers);
     // Most options here are to ensure stderr only contains errors, so we can use it to confidently check if an error occurred.
