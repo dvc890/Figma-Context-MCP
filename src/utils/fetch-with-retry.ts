@@ -44,8 +44,16 @@ export async function fetchWithRetry<T extends { status?: number }>(
   url: string,
   options: RequestOptions = {},
 ): Promise<T> {
+  const timeoutMs = 25000; // 25 seconds timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
 
     if (response.status === 429) {
       throw new RateLimitError(
@@ -59,12 +67,17 @@ export async function fetchWithRetry<T extends { status?: number }>(
     }
     return (await response.json()) as T;
   } catch (fetchError: any) {
+    clearTimeout(timeoutId);
     if (fetchError instanceof RateLimitError) {
       throw fetchError;
+    }
+    if (fetchError.name === "AbortError") {
+      throw new Error(`Figma API request timed out after ${timeoutMs / 1000} seconds.`);
     }
     Logger.log(
       `[fetchWithRetry] Initial fetch failed for ${url}: ${fetchError.message}. Likely a corporate proxy or SSL issue. Attempting curl fallback.`,
     );
+
 
 
     const curlHeaders = formatHeadersForCurl(options.headers);

@@ -57,12 +57,19 @@ async function getFigmaData(
       } ${fileKey}`,
     );
 
+    // If no nodeId is provided, default depth to 1 to avoid fetching massive files and timing out
+    let fetchDepth = depth;
+    if (!nodeId && fetchDepth === undefined) {
+      Logger.log("No nodeId or depth provided for full file fetch. Defaulting depth to 1 to prevent timeouts.");
+      fetchDepth = 1;
+    }
+
     // Get raw Figma API response
     let rawApiResponse: GetFileResponse | GetFileNodesResponse;
     if (nodeId) {
-      rawApiResponse = await figmaService.getRawNode(fileKey, nodeId, depth);
+      rawApiResponse = await figmaService.getRawNode(fileKey, nodeId, fetchDepth);
     } else {
-      rawApiResponse = await figmaService.getRawFile(fileKey, depth);
+      rawApiResponse = await figmaService.getRawFile(fileKey, fetchDepth);
     }
 
     // Use unified design extraction (handles nodes + components consistently)
@@ -115,7 +122,7 @@ async function getFigmaData(
 export const getFigmaDataTool = {
   name: "get_figma_data",
   description:
-    "Get comprehensive Figma file data including layout, content, visuals, and component information. WARNING: This tool is subject to Figma API rate limits. Please avoid frequent polling and attempt to batch your requests if possible. If you receive a 429 error, you MUST wait for the specified 'Retry-After' duration before calling this tool again.",
+    "Get comprehensive Figma file data including layout, content, visuals, and component information. WARNING: This tool is subject to Figma API rate limits. IMPORTANT: Fetching full files or very deep node trees can be extremely slow and may cause a 'context deadline exceeded' error or timeout. To avoid this, ALWAYS prefer providing a 'nodeId' and a small 'depth' (e.g., 1 or 2). For large files, start with depth 1 to explore the structure and then drill down into specific nodes. If you receive a 429 error, you MUST wait for the specified 'Retry-After' duration before calling this tool again.",
   parameters,
   handler: getFigmaData,
 } as const;

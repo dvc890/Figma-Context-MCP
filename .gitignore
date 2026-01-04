@@ -40,23 +40,4 @@ Thumbs.db
 
 # mcp-publisher CLI tool files
 .mcpregistry*
-/.history/figma-mcp-server-authless/src/tools/download-figma-images-tool_20251231175240.ts
-/.history/figma-mcp-server-authless/src/tools/download-figma-images-tool_20251231175619.ts
-/.history/figma-mcp-server-authless/src/tools/get-figma-data-tool_20251231175216.ts
-/.history/figma-mcp-server-authless/src/tools/get-figma-data-tool_20251231175619.ts
-/.history/figma-mcp-server-authless/src/figma_20251231175151.ts
-/.history/figma-mcp-server-authless/src/figma_20251231175431.ts
-/.history/figma-mcp-server-authless/src/figma_20251231175619.ts
-/.history/figma-mcp-server-authless/src/index_20251231175516.ts
-/.history/figma-mcp-server-authless/src/index_20251231175619.ts
-/.history/figma-mcp-server-authless/src/index_20251231180527.ts
-/.history/figma-mcp-server-authless/src/index_20251231180601.ts
-/.history/figma-mcp-server-authless/src/index_20251231180746.ts
-/.history/figma-mcp-server-authless/src/index_20251231180810.ts
-/.history/figma-mcp-server-authless/src/index_20251231180950.ts
-/.history/figma-mcp-server-authless/package_20251231175615.json
-/.history/figma-mcp-server-authless/package_20251231175619.json
-/.history/figma-mcp-server-authless/README_20251231175749.md
-/.history/figma-mcp-server-authless/README_20251231180102.md
-/.history/figma-mcp-server-authless/wrangler_20251231175659.jsonc
-/.history/figma-mcp-server-authless/wrangler_20251231180102.jsonc
+/.history
